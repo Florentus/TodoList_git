@@ -1,4 +1,5 @@
 // Ver 1.1
+// on va donc démarrer une nouvelle version
 var app = require('express')(),
     server = require('http').createServer(app),
     io = require('socket.io').listen(server),
