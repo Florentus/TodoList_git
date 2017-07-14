@@ -215,12 +215,12 @@
 
     // Met à jour la table des tâches
     socket.on('refresh_task_list',function(data){
-        update_task_list(data);
+        update_task_list(data); // on met à jour la liste des users
     })
 
     // Erreur de nom d'utilisateur
     socket.on('user_error', function (mes) {
-        $('#pseudo').focus();
+        $('#pseudo').focus(); // remet le focus sur la zone
         alert_erreur('Le pseudo ' + mes);
         deconnect();
     })

@@ -7,5 +7,5 @@
     "socket.io": "^2.0.3"
   },
   "author": "Florent <florent.boivin@gmail.com>",
-  "description": "Todolist partagée en temps réel avec socket.io"
+  "description": "Todolist partagée en temps réel avec socket.io pour test"
 }
