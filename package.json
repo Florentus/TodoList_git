@@ -1,0 +1,11 @@
+{
+  "name": "todolist",
+  "version": "0.1.0",
+  "dependencies": {
+    "ent": "^2.2.0",
+    "express": "^4.15.3",
+    "socket.io": "^2.0.3"
+  },
+  "author": "Florent <florent.boivin@gmail.com>",
+  "description": "Todolist partagée en temps réel avec socket.io"
+}

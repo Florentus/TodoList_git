@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Todo list temps réel</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+        crossorigin="anonymous">
+    <style>
+        body {
+            padding-top: 10px;
+            padding-bottom: 10px;
+            background-color: #eeeeee;
+        }
+        .margin5px {
+            margin-top: 5px;
+        }
+        .margin20px {
+            margin-top: 20px;
+        }
+        .scrollbox {           
+            height: 150px; 
+            overflow-y: auto;           
+        }        
+        .cursor-interdit {
+            cursor: not-allowed;
+        }       
+    </style>
+</head>
+
+<body>    
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-12">
+                <h1>Ma super todolist</h1>
+                <div class="row margin20px">
+                    <div class="col-xs-6">
+                        <input type="text" class="form-control" id="pseudo" placeholder="Votre pseudo" required autofocus>
+                        <div class="margin5px">
+                            <button type="button" id="connection" class="btn btn-default">Se connecter</button>
+                            <button type="button" id="deconnection" class="btn btn-default">Au revoir</button>                            
+                        </div>
+                        <div class="margin20px alert alert-info" id="alert_connection" role="alert"></div>
+                        <div class="alert alert-danger" id="alert_erreur" role="alert" style="display: none">            
+                            <h4 class="text-center"></h4>                          
+                        </div>
+                    </div>
+                    <div class="col-xs-6">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">Utilisateurs connectés</div>
+                            <div class="panel-body box scrollbox" >
+                                <ul class="list-unstyled" id="user_list">                                   
+                                </ul>                                                                                                                    
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row margin20px" >
+                    <div class="col-xs-12">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                Liste des taches
+                            </div>
+                            <div class="panel-body box scrollbox">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-xs-1 text-center"><em class="glyphicon glyphicon-cog"></em></th>
+                                            <th class="col-xs-1">#</th>
+                                            <th class="col-xs-2">Auteur</th>
+                                            <th class="col-xs-8">Tache</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="task_list">                                        
+                                    </tbody>
+                                </table>                                                                                       
+                            </div>
+                        </div>
+                        <input type="text" class="form-control" id="new_task" placeholder="Nouvelle tache">
+                        <button type="button" id="validate" class="btn btn-default margin5px">Valider</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous">
+        </script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+        crossorigin="anonymous">
+        </script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+
+    const socket =  io();    
+
+    // sert pour mémoriser le titre du document 
+    var document_title; 
+
+    const btn = {
+            disable: function (selector) {
+                $(selector).addClass('cursor-interdit').attr('disabled', 'disabled');
+            },
+            enable: function (selector) {
+                $(selector).removeClass('cursor-interdit').removeAttr('disabled');
+            }
+        };
+
+    // Met à jour la zone indiquant le nom de l'utilisateur connecté
+    function alert_connection(pseudo) {
+        var str;
+        if (typeof pseudo !== 'undefined') str = '<strong> Bonjour ' + pseudo + '</strong>'
+        else str = "<strong>vous n'êtes pas connecté</strong>";
+        $('#alert_connection').html(str);        
+    }
+
+    // Affiche une alerte en cas d'erreur
+    function alert_erreur(message) {
+        $('#alert_erreur h4').html(message);
+        $('#alert_erreur').show('slow').delay(500).hide('slow');
+    }
+
+    // Met à jour la liste des utilisateurs connectés
+    function update_user_list(user_list) {
+        $("#user_list").empty();
+        if (typeof user_list !== 'undefined') {
+            user_list.forEach(function (element) {
+                $("#user_list").append('<li>' + element + '</li>');
+            })
+        }
+    }
+
+    // Ajoute une tache dans la liste
+    function add_task(element, index) {
+        var bt = '<button id="button_' + index + '" class="btn btn-default"><em class="glyphicon glyphicon-trash"></em></button>';
+        var tmp = '<tr><td class="text-center">' +
+                  bt + '</td><td>' +
+                  index + '</td><td>' +
+                  element.name + '</td><td>' +
+                  element.task +
+                 '</td></tr>';
+
+        $("#task_list").append(tmp);
+        
+        // Init gestionnaire pour le bouton de supression d'une tâche
+        $('#button_' + index).on('click', function (e) {
+            var index = this.id.match(/_(.*)$/)[1];                
+            delete_task(index);                
+        });
+    }
+
+    // met à jour la liste des taches
+    function update_task_list(task_list) {
+        $("#task_list").empty();
+        if (typeof task_list !== 'undefined') {
+            task_list.forEach(function(element,index) {
+                add_task(element,index);
+            })
+        }
+    }       
+
+    // Connexion au serveur  
+    function connect() {
+        var pseudo = $('#pseudo').val();
+
+        if (pseudo) {
+            socket.connect('http://localhost:8080');
+            socket.emit('nouveau_client', pseudo);
+
+            $('#pseudo').val('');
+            btn.enable('#deconnection');
+            btn.enable('#validate');
+            btn.disable('#connection');
+            alert_connection(pseudo);
+            document.title = pseudo + ' - ' + document_title;           
+        } else {
+            $('#pseudo').focus();
+            alert_erreur('vous devez spécifier un pseudo');          
+        }
+    }
+
+    // Déconnexion du serveur
+    function deconnect() {
+        socket.disconnect();
+
+        update_user_list();
+        update_task_list();
+
+        btn.disable('#deconnection');
+        btn.disable('#validate');
+        btn.enable('#connection');
+        alert_connection();
+        document.title = document_title;
+    }
+
+    // suppression d'une tâche
+    function delete_task(index) {
+        socket.emit('delete_task', index);
+    }
+
+    // Envoie d'une nouvelle tâche au serveur
+    function new_task() {
+       var newTask = $('#new_task').val();
+       if (newTask) {
+           socket.emit('new_task', newTask);
+           $('#new_task').val('');
+       } 
+    }
+
+    // Met à jour la liste des utilisateurs connectés
+    socket.on('refresh_users_list', function (data) {
+        update_user_list(data);        
+    })
+
+    // Met à jour la table des tâches
+    socket.on('refresh_task_list',function(data){
+        update_task_list(data);
+    })
+
+    // Erreur de nom d'utilisateur
+    socket.on('user_error', function (mes) {
+        $('#pseudo').focus();
+        alert_erreur('Le pseudo ' + mes);
+        deconnect();
+    })
+
+    $(document).ready(function() {
+
+        // On récupère le titre du document
+        document_title = document.title;
+
+        // affiche que je ne suis pas connecté 
+        alert_connection();
+        
+        btn.disable('#deconnection');
+        btn.disable('#validate');
+
+        $('#connection').on('click', connect); 
+        $('#deconnection').on('click', deconnect);
+        $('#validate').on('click', new_task);
+    });
+
+
+    </script>
+</body>
+
+</html>
